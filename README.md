@@ -1,0 +1,1 @@
+# plugins-wp-vertical-image-slider
