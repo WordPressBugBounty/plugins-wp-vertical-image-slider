@@ -5,7 +5,7 @@
     Author URI:http://www.i13websolution.com/
     Description: This is beautiful thumbnail image slider plugin for WordPress.Add any number of images from admin panel.
     Author:I Thirteen Web Solution 
-    Version:1.2.18
+    Version:1.2.19
     Text Domain:wp-vertical-image-slider
     Domain Path:/languages
     */
@@ -1249,6 +1249,7 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
                                                 validExtensions[1]='jpeg';
                                                 validExtensions[2]='png';
                                                 validExtensions[3]='gif';
+                                                validExtensions[4]='webp';
 
 
                                                 var inarr=parseInt(jQuery.inArray( attachment.subtype, validExtensions));
@@ -1666,6 +1667,7 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
                                                                             validExtensions[1]='jpeg';
                                                                             validExtensions[2]='png';
                                                                             validExtensions[3]='gif';
+                                                                            validExtensions[4]='webp';
                                                                   
                                                                             var inarr=parseInt(jQuery.inArray( attachment.subtype, validExtensions));
 

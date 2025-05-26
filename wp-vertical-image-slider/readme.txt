@@ -3,9 +3,9 @@ Contributors:nik00726
 Donate link:http://www.i13websolution.com/donate-wordpress_image_thumbnail.php
 Tags:wordpress vertical image slider,wordpress vertical slider,wordpress vertical thumbnail scroller,wp vertical image slider,wordpress vertical vertical image sliders,wordpress slider with thumbnails,wordpress banner slider,wordpress vertical image slider with images,
 Requires at least:3.5
-Tested up to:6.6
-Version:1.2.18
-Stable tag:1.2.18
+Tested up to:6.8
+Version:1.2.19
+Stable tag:1.2.19
 License:GPLv2 or later
 License URI:http://www.gnu.org/licenses/gpl-2.0.html
 == Description ==
@@ -124,6 +124,12 @@ This plugin is free for everyone! Since it's released under the GPL, you can use
 
 
 == Changelog ==
+
+= 1.2.19 =
+
+* Added webp image support
+* Tested with WordPress 6.8
+
 
 = 1.2.18 =
 
