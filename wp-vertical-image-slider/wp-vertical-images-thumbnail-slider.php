@@ -1,6 +1,6 @@
 <?php
     /* 
-    Plugin Name: WordPress vertical Thumbnail Slider
+    Plugin Name: Vertical Thumbnail Slider
     Plugin URI:https://www.i13websolution.com/product/wordpress-vertical-thumbnail-slider-pro-plugin/
     Author URI:http://www.i13websolution.com/
     Description: This is beautiful thumbnail image slider plugin for WordPress.Add any number of images from admin panel.
