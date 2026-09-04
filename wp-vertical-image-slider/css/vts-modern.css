@@ -1,0 +1,215 @@
+/* Vertical Image Slider - Modern engine + lightbox + upgrade card styles */
+
+.vts-modern-wrap {
+	position: relative;
+	visibility: hidden;
+	max-width: 100%;
+	margin: 0 auto;
+	box-sizing: border-box;
+}
+.vts-modern-wrap,
+.vts-modern-wrap * {
+	box-sizing: border-box;
+}
+.vts-modern-viewport {
+	overflow: hidden;
+	width: 100%;
+}
+.vts-modern-track {
+	display: flex;
+	flex-direction: column;
+	will-change: transform;
+}
+.vts-modern-item {
+	flex-shrink: 0;
+	text-align: center;
+	position: relative;
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 5px;
+	box-shadow: 0 0 5px rgba( 0, 0, 0, 0.2 );
+	padding: 5px;
+}
+.vts-modern-item img {
+	display: block;
+	width: 100%;
+	object-fit: cover;
+	border-radius: 3px;
+}
+.vts-modern-caption {
+	position: absolute;
+	left: 5px;
+	right: 5px;
+	bottom: 5px;
+	margin: 0;
+	background: rgba( 0, 0, 0, 0.55 );
+	color: #fff;
+	font-size: 12px;
+	line-height: 1.4;
+	padding: 4px 6px;
+	text-align: center;
+	border-radius: 0 0 3px 3px;
+}
+.vts-modern-wrap .vts-modern-nav {
+	display: flex !important;
+	justify-content: center !important;
+	align-items: center !important;
+	background: none !important;
+	background-color: transparent !important;
+	border: 0 !important;
+	border-radius: 50% !important;
+	outline: none !important;
+	box-shadow: none !important;
+	-webkit-appearance: none !important;
+	appearance: none !important;
+	cursor: pointer !important;
+	padding: 0 !important;
+	margin: 4px auto !important;
+	width: 32px !important;
+	height: 32px !important;
+	min-width: 32px !important;
+	min-height: 32px !important;
+	line-height: 1 !important;
+	text-decoration: none !important;
+	transition: background-color 0.15s ease !important;
+}
+.vts-modern-wrap .vts-modern-nav svg {
+	width: 18px;
+	height: 18px;
+	fill: currentColor;
+	opacity: 0.65;
+	transition: opacity 0.15s ease;
+	pointer-events: none;
+}
+.vts-modern-wrap .vts-modern-nav:hover,
+.vts-modern-wrap .vts-modern-nav:focus,
+.vts-modern-wrap .vts-modern-nav:active {
+	background: none !important;
+	background-color: transparent !important;
+	border: 0 !important;
+	box-shadow: none !important;
+}
+.vts-modern-wrap .vts-modern-nav:hover svg,
+.vts-modern-wrap .vts-modern-nav:focus svg {
+	opacity: 1;
+}
+.vts-modern-wrap .vts-modern-nav:focus-visible {
+	outline: 2px solid currentColor !important;
+	outline-offset: 1px;
+}
+
+/* Lightbox trigger affordance */
+.vts-lightbox-trigger {
+	cursor: zoom-in;
+}
+
+/* Lightbox overlay */
+.vts-lightbox-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba( 0, 0, 0, 0.85 );
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.2s ease;
+	z-index: 100000;
+}
+.vts-lightbox-overlay.is-open {
+	opacity: 1;
+	visibility: visible;
+}
+body.vts-lightbox-open {
+	overflow: hidden;
+}
+.vts-lightbox-stage {
+	max-width: 90vw;
+	max-height: 85vh;
+	text-align: center;
+}
+.vts-lightbox-img {
+	max-width: 90vw;
+	max-height: 80vh;
+	display: block;
+	margin: 0 auto;
+	box-shadow: 0 10px 40px rgba( 0, 0, 0, 0.5 );
+	border-radius: 4px;
+}
+.vts-lightbox-caption {
+	color: #fff;
+	margin-top: 10px;
+	font-size: 14px;
+}
+.vts-lightbox-close,
+.vts-lightbox-prev,
+.vts-lightbox-next {
+	position: absolute;
+	background: transparent;
+	border: none;
+	color: #fff;
+	cursor: pointer;
+	line-height: 1;
+}
+.vts-lightbox-close {
+	top: 20px;
+	right: 30px;
+	font-size: 36px;
+}
+.vts-lightbox-prev,
+.vts-lightbox-next {
+	top: 50%;
+	transform: translateY( -50% );
+	font-size: 48px;
+	padding: 10px 16px;
+}
+.vts-lightbox-prev {
+	left: 10px;
+}
+.vts-lightbox-next {
+	right: 10px;
+}
+.vts-lightbox-close:hover,
+.vts-lightbox-prev:hover,
+.vts-lightbox-next:hover {
+	color: #f0b429;
+}
+
+/* Shared PRO upgrade card (replaces old affiliate ad boxes) */
+.vts-pro-upgrade-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	padding: 18px;
+	margin-bottom: 15px;
+}
+.vts-pro-upgrade-card h3 {
+	margin: 0 0 8px;
+	font-size: 15px;
+	color: #1d2327;
+}
+.vts-pro-upgrade-card ul {
+	margin: 0 0 14px 18px;
+	padding: 0;
+	font-size: 13px;
+	line-height: 1.6;
+	list-style: disc;
+	color: #3c434a;
+}
+.vts-pro-upgrade-card ul li {
+	margin-bottom: 4px;
+}
+.vts-pro-upgrade-card .vts-pro-upgrade-btn {
+	display: inline-block;
+	background: #2271b1;
+	color: #fff;
+	text-decoration: none;
+	padding: 8px 16px;
+	border-radius: 4px;
+	font-size: 13px;
+	font-weight: 600;
+}
+.vts-pro-upgrade-card .vts-pro-upgrade-btn:hover {
+	background: #135e96;
+	color: #fff;
+}

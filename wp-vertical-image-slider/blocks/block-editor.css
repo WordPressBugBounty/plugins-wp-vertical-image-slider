@@ -1,0 +1,62 @@
+.vts-block-placeholder {
+	background: #f9fafb;
+	border: 1px solid #e5e7eb;
+	border-radius: 8px;
+	padding: 28px 24px;
+	text-align: center;
+}
+.vts-block-icon.dashicons {
+	width: 36px;
+	height: 36px;
+	font-size: 36px;
+	color: #9ca3af;
+	margin-bottom: 6px;
+}
+.vts-block-title {
+	font-size: 15px;
+	font-weight: 600;
+	color: #111827;
+	margin-bottom: 14px;
+}
+.vts-block-badges {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 8px;
+	margin-bottom: 10px;
+}
+.vts-badge {
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 999px;
+	font-size: 12px;
+	border: 1px solid transparent;
+	white-space: nowrap;
+}
+.vts-badge-green {
+	background: #eaf7ee;
+	border-color: #b6e3c3;
+	color: #2e7d43;
+}
+.vts-badge-blue {
+	background: #eaf1fb;
+	border-color: #bcd6f5;
+	color: #2f5fa8;
+}
+.vts-badge-grey {
+	background: #f1f1f1;
+	border-color: #dcdcde;
+	color: #50575e;
+}
+.vts-block-desc {
+	font-size: 13px;
+	color: #6b7280;
+	margin: 12px 0 4px;
+}
+.vts-block-upsell {
+	font-size: 13px;
+	margin: 6px 0 0;
+}
+.vts-block-upsell a {
+	text-decoration: none;
+}

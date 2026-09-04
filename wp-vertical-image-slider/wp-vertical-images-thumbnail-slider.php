@@ -5,7 +5,7 @@
     Author URI:http://www.i13websolution.com/
     Description: This is beautiful thumbnail image slider plugin for WordPress.Add any number of images from admin panel.
     Author:I Thirteen Web Solution 
-    Version:1.2.19
+    Version:1.3.19
     Text Domain:wp-vertical-image-slider
     Domain Path:/languages
     */
@@ -22,6 +22,7 @@
     
     add_action('plugins_loaded', 'vts_load_lang_for_responsive_vertical_thumbnail_slider');
     add_action( 'wp_ajax_mass_upload_verticalslider', 'wrthslider_slider_mass_upload_verticalslider' );
+    add_action( 'init', 'vts_register_vertical_thumbnail_slider_block' );
     
     function vts_load_lang_for_responsive_vertical_thumbnail_slider() {
             
@@ -222,6 +223,10 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
             wp_register_script('images-vertical-thumbnail-slider-jc',plugins_url('/js/images-vertical-thumbnail-slider-jc.js', __FILE__),array('jquery'),'1.2.14');
             wp_register_script('responsive-vertical-thumbnail-slider-jc',plugins_url('/js/responsive-vertical-thumbnail-slider-jc.js', __FILE__),array('jquery'),'1.2.14');
 
+            wp_register_style( 'vts-modern', plugins_url('/css/vts-modern.css', __FILE__), array(), '1.3.19' );
+            wp_register_script( 'vts-modern-engine', plugins_url('/js/vts-modern-engine.js', __FILE__), array(), '1.3.19', true );
+            wp_register_script( 'vts-modern-lightbox', plugins_url('/js/vts-modern-lightbox.js', __FILE__), array(), '1.3.19', true );
+
         }  
     }
 
@@ -241,7 +246,7 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
 
-        $vertical_thumbnail_slider_settings=array('linkimage' => '1','pauseonmouseover' => '1','auto' =>'','speed' => '1000','circular' => '1','imageheight' => '120','imagewidth' => '120','visible'=> '5','scroll' => '1','resizeImages'=>'0','scollerBackground'=>'#FFFFFF','is_responsive'=>'0','pause'=>'1000','imageMargin'=>'5','show_caption'=>'0');
+        $vertical_thumbnail_slider_settings=array('linkimage' => '1','pauseonmouseover' => '1','auto' =>'','speed' => '1000','circular' => '1','imageheight' => '120','imagewidth' => '120','visible'=> '5','scroll' => '1','resizeImages'=>'0','scollerBackground'=>'#FFFFFF','is_responsive'=>'0','pause'=>'1000','imageMargin'=>'5','show_caption'=>'0','slider_engine'=>'modern','enable_lightbox'=>'1');
 
         if( !get_option( 'vertical_thumbnail_slider_settings' ) ) {
 
@@ -274,6 +279,19 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
                 $opts['show_caption']='0'; 
 
              }
+
+            if(!isset($opts['slider_engine'])){
+
+                // Existing sites keep the slider exactly as it rendered before this upgrade.
+                $flag=true;
+                $opts['slider_engine']='legacy';
+            }
+
+            if(!isset($opts['enable_lightbox'])){
+
+                $flag=true;
+                $opts['enable_lightbox']='0';
+            }
             
             if($flag==true){ 
                 
@@ -328,9 +346,84 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
     }
      
 
+    /**
+     * Registers the "Vertical Thumbnail Slider" block. Dynamic block —
+     * rendered server-side via the existing shortcode function, so it always
+     * stays in sync with the shortcode/legacy output and needs no build step.
+     */
+    function vts_register_vertical_thumbnail_slider_block() {
+
+        if ( ! function_exists( 'register_block_type' ) ) {
+            return;
+        }
+
+        wp_register_script(
+            'vts-vertical-thumbnail-slider-block',
+            plugins_url( '/blocks/vertical-thumbnail-slider-block.js', __FILE__ ),
+            array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-i18n' ),
+            '1.3.19',
+            true
+        );
+
+        wp_register_style(
+            'vts-vertical-thumbnail-slider-block-editor',
+            plugins_url( '/blocks/block-editor.css', __FILE__ ),
+            array(),
+            '1.3.19'
+        );
+
+        // Static settings-summary data for the editor placeholder card — no
+        // live server-side render (JS sliders don't lay out reliably inside
+        // the editor's preview, and it'd mean an AJAX round trip on every
+        // sidebar change). The real slider renders normally on the front end.
+        global $wpdb;
+        $settings   = get_option( 'vertical_thumbnail_slider_settings' );
+        $image_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . $wpdb->prefix . "vertical_thumbnail_slider" );
+
+        wp_localize_script( 'vts-vertical-thumbnail-slider-block', 'vtsBlockSummary', array(
+            'engine'       => ( isset( $settings['slider_engine'] ) && $settings['slider_engine'] === 'modern' ) ? 'modern' : 'legacy',
+            'auto'         => ! empty( $settings['auto'] ),
+            'circular'     => ! empty( $settings['circular'] ),
+            'visible'      => isset( $settings['visible'] ) ? (int) $settings['visible'] : 0,
+            'imageCount'   => $image_count,
+            'settingsUrl'  => admin_url( 'admin.php?page=vertical_thumbnail_slider' ),
+        ) );
+
+        register_block_type( 'wp-vertical-image-slider/vertical-thumbnail-slider', array(
+            'editor_script'   => 'vts-vertical-thumbnail-slider-block',
+            'editor_style'    => 'vts-vertical-thumbnail-slider-block-editor',
+            'render_callback' => 'print_vertical_thumbnail_slider_func',
+        ) );
+    }
+
+    /**
+     * Shared "Upgrade to Pro" card, used in place of the old third-party
+     * affiliate ad boxes and standalone upgrade links on the admin screens.
+     */
+    function vts_render_pro_upgrade_card() {
+        wp_enqueue_style( 'vts-modern' );
+        ?>
+        <div class="postbox vts-pro-upgrade-card">
+            <h3><?php echo __( 'Upgrade to Vertical Thumbnail Slider Pro', 'wp-vertical-image-slider' ); ?></h3>
+            <ul>
+                <li><?php echo __( 'Unlimited sliders (multiple sliders per site)', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( 'True ticker / non-stop continuous scroll mode', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( '16 easing effects with real per-frame animation (Bounce, Elastic & more)', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( 'Full slider settings and image management from the Gutenberg block sidebar', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( 'Native Elementor widget and Divi module', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( 'Mass image upload and drag-to-reorder', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( 'Per-slider border, shadow, radius & caption styling', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( 'Add featured images directly from the post/page editor', 'wp-vertical-image-slider' ); ?></li>
+                <li><?php echo __( 'No advertisements &amp; priority support', 'wp-vertical-image-slider' ); ?></li>
+            </ul>
+            <a class="vts-pro-upgrade-btn" target="_blank" href="https://www.i13websolution.com/product/wordpress-vertical-thumbnail-slider-pro-plugin/"><?php echo __( 'Upgrade Now', 'wp-vertical-image-slider' ); ?></a>
+        </div>
+        <?php
+    }
+
     function add_vertical_thumbnail_slider_admin_menu(){
 
-        $hook_suffix_v_l=add_menu_page( __( 'Vertical Thumbnail Slider','wp-vertical-image-slider'), __( 'Vertical Thumbnail Slider','wp-vertical-image-slider' ), 'vts_vertical_thumbnail_slider_settings', 'vertical_thumbnail_slider', 'vertical_thumbnail_slider_admin_options' );
+        $hook_suffix_v_l=add_menu_page( __( 'Vertical Thumbnail Slider','wp-vertical-image-slider'), __( 'Vertical Thumbnail Slider','wp-vertical-image-slider' ), 'vts_vertical_thumbnail_slider_settings', 'vertical_thumbnail_slider', 'vertical_thumbnail_slider_admin_options', 'dashicons-image-flip-vertical' );
         $hook_suffix_v_l=add_submenu_page( 'vertical_thumbnail_slider', __( 'Slider Setting','wp-vertical-image-slider'), __( 'Slider Setting','wp-vertical-image-slider' ),'vts_vertical_thumbnail_slider_settings', 'vertical_thumbnail_slider', 'vertical_thumbnail_slider_admin_options' );
         $hook_suffix_v_l_1=add_submenu_page( 'vertical_thumbnail_slider', __( 'Manage Images','wp-vertical-image-slider'), __( 'Manage Images','wp-vertical-image-slider'),'vts_vertical_thumbnail_slider_view_images', 'vertical_thumbnail_slider_image_management', 'vertical_thumbnail_image_management' );
         $hook_suffix_v_l_2=add_submenu_page( 'vertical_thumbnail_slider', __( 'Preview Slider','wp-vertical-image-slider'), __( 'Preview Slider','wp-vertical-image-slider'),'vts_vertical_thumbnail_slider_preview', 'vertical_thumbnail_slider_preview', 'verticalpreviewSliderAdmin' );
@@ -350,6 +443,15 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
         wp_enqueue_style('images-vertical-thumbnail-slider-style',$url.'css/images-vertical-thumbnail-slider-style.css');
         wp_enqueue_style('vertical-responsive',$url.'css/vertical-responsive.css');
         wp_enqueue_style( 'admin-css-resp-vertical-slider', plugins_url('/css/admin-css.css', __FILE__) );
+
+        // Registered here too: the frontend registration below only runs on
+        // 'wp_enqueue_scripts', which never fires on admin pages (Preview
+        // Slider, Settings, Manage Images all need these).
+        wp_register_style( 'vts-modern', $url.'css/vts-modern.css', array(), '1.3.19' );
+        wp_register_script( 'vts-modern-engine', $url.'js/vts-modern-engine.js', array(), '1.3.19', true );
+        wp_register_script( 'vts-modern-lightbox', $url.'js/vts-modern-lightbox.js', array(), '1.3.19', true );
+        wp_enqueue_style( 'vts-modern' );
+
         vertical_thumbnail_slider_admin_scripts_init();
         
     }
@@ -413,6 +515,13 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
             $resizeImages=(int)trim(htmlentities(sanitize_text_field($_POST['resizeImages']),ENT_QUOTES));
             $scollerBackground=trim(htmlentities(sanitize_text_field($_POST['scollerBackground']),ENT_QUOTES));
 
+            $slider_engine = ( isset( $_POST['slider_engine'] ) && $_POST['slider_engine'] === 'legacy' ) ? 'legacy' : 'modern';
+
+            if ( isset( $_POST['enable_lightbox'] ) )
+                $enable_lightbox = '1';
+            else
+                $enable_lightbox = '0';
+
             $options=array();
             $options['linkimage']=$linkimage;  
             $options['pauseonmouseover']=$pauseonmouseover;  
@@ -430,6 +539,8 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
             $options['is_responsive']=$is_responsive;  
             $options['imageMargin']=$imageMargin;  
             $options['show_caption']=$show_caption;  
+            $options['slider_engine']=$slider_engine;
+            $options['enable_lightbox']=$enable_lightbox;
 
             $settings=update_option('vertical_thumbnail_slider_settings',$options); 
             $vertical_thumbnail_slider_messages=array();
@@ -446,25 +557,6 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
     <div id="poststuff" >  
         <div id="post-body" class="metabox-holder columns-2">
             <div id="post-body-content">
-                <table><tr>
-                        <td>
-                          <div class="fb-like" data-href="https://www.facebook.com/i13websolution" data-layout="button" data-action="like" data-size="large" data-show-faces="false" data-share="false"></div>
-                          <div id="fb-root"></div>
-                            <script>(function(d, s, id) {
-                              var js, fjs = d.getElementsByTagName(s)[0];
-                              if (d.getElementById(id)) return;
-                              js = d.createElement(s); js.id = id;
-                              js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.2&appId=158817690866061&autoLogAppEvents=1';
-                              fjs.parentNode.insertBefore(js, fjs);
-                            }(document, 'script', 'facebook-jssdk'));</script>
-                      </td>
-                        <td>
-                            <a target="_blank" title="Donate" href="http://www.i13websolution.com/donate-wordpress_image_thumbnail.php">
-                                <img id="help us for free plugin" height="30" width="90" src="<?php echo plugins_url( 'images/paypaldonate.jpg', __FILE__ );?>" border="0" alt="help us for free plugin" title="help us for free plugin">
-                            </a>
-                        </td>
-                    </tr>
-                </table>
 
                 <?php
                     $messages=get_option('vertical_thumbnail_slider_messages'); 
@@ -485,13 +577,38 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
                     update_option('vertical_thumbnail_slider_messages', array());     
                 ?>      
 
-                <span><h3 style="color: blue;"><a target="_blank" href="https://www.i13websolution.com/product/wordpress-vertical-thumbnail-slider-pro-plugin/"><?php echo __( 'UPGRADE TO PRO VERSION','wp-vertical-image-slider');?></a></h3></span>
-
                 <h2><?php echo __( 'Slider Settings','wp-vertical-image-slider');?></h2>
                 <div id="poststuff">
                     <div id="post-body" class="metabox-holder columns-2">
                         <div id="post-body-content">
                             <form method="post" action="" id="scrollersettiings" name="scrollersettiings" >
+
+                                <div class="stuffbox" id="enginediv" style="width:100%;">
+                                        <h3><label><?php echo __( 'Slider Engine','wp-vertical-image-slider');?></label></h3>
+                                       <div class="inside">
+                                            <table>
+                                                <tr>
+                                                    <td><?php echo __( 'Engine','wp-vertical-image-slider');?></td>
+                                                    <td>
+                                                        <select name="slider_engine">
+                                                            <option value="modern" <?php selected( ( isset( $settings['slider_engine'] ) ? $settings['slider_engine'] : 'modern' ), 'modern' ); ?>><?php echo __( 'Modern (recommended)','wp-vertical-image-slider');?></option>
+                                                            <option value="legacy" <?php selected( ( isset( $settings['slider_engine'] ) ? $settings['slider_engine'] : 'modern' ), 'legacy' ); ?>><?php echo __( 'Legacy (old jQuery engine)','wp-vertical-image-slider');?></option>
+                                                        </select>
+                                                        <p class="description"><?php echo __( 'Modern uses a lightweight, dependency-free slider and supports the lightbox below. Legacy keeps the original jQuery-based slider for sites relying on its exact behaviour.','wp-vertical-image-slider');?></p>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><?php echo __( 'Lightbox','wp-vertical-image-slider');?></td>
+                                                    <td>
+                                                        <label>
+                                                            <input type="checkbox" name="enable_lightbox" value="1" <?php checked( ! empty( $settings['enable_lightbox'] ) ); ?> />
+                                                            <?php echo __( 'Open images in a lightbox on click (only applies to images without a custom link, Modern engine only)','wp-vertical-image-slider');?>
+                                                        </label>
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                </div>
 
                                 <div class="stuffbox" id="namediv" style="width:100%;">
                                         <h3><label><?php echo __( 'Responsive Slider?','wp-vertical-image-slider');?></label></h3>
@@ -833,7 +950,31 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
                                         
                                       });
                                       
-                                        jQuery('input[name=is_responsive]').trigger( "change" );
+                                        // Modern engine doesn't use "Responsive Slider?" (it's always
+                                        // fluid) or "Add link to image?" (a per-image link always wins
+                                        // now, regardless of this toggle) — hide those, and the caption/
+                                        // pause/gap fields the Modern engine always uses stay visible
+                                        // rather than following the Legacy-only is_responsive toggle.
+                                        function vtsToggleEngineFields() {
+                                            var isModern = jQuery('select[name=slider_engine]').val() === 'modern';
+                                            var $responsiveBox = jQuery('input[name=is_responsive]').first().closest('.stuffbox');
+                                            var $linkImagesBox = jQuery('#linkimage').closest('.stuffbox');
+
+                                            if ( isModern ) {
+                                                $responsiveBox.hide();
+                                                $linkImagesBox.hide();
+                                                jQuery('#show_caption').show();
+                                                jQuery('#pauseclass').show();
+                                                jQuery('#image_margin').show();
+                                            } else {
+                                                $responsiveBox.show();
+                                                $linkImagesBox.show();
+                                                jQuery('input[name=is_responsive]:checked').trigger( 'change' );
+                                            }
+                                        }
+
+                                        jQuery('select[name=slider_engine]').on( 'change', vtsToggleEngineFields );
+                                        vtsToggleEngineFields();
                                 });
 
                             </script> 
@@ -844,28 +985,7 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
             </div>      
 
             <div id="postbox-container-1" class="postbox-container" style="margin-top: 15px;"> 
-
-                <div class="postbox"> 
-                    <h3 class="hndle"><span></span><?php echo __( 'Access All Themes In One Price','wp-vertical-image-slider');?></h3> 
-                    <div class="inside">
-                        <center><a href="http://www.elegantthemes.com/affiliates/idevaffiliate.php?id=11715_0_1_10" target="_blank"><img border="0" src="<?php echo plugins_url( 'images/300x250.gif', __FILE__ );?>" width="250" height="250"></a></center>
-
-                        <div style="margin:10px 5px">
-
-                        </div>
-                    </div>
-                </div>
-                <div class="postbox"> 
-                <h3 class="hndle"><span></span><?php echo __('Google For Business Coupon','wp-vertical-image-slider');?></h3> 
-                    <div class="inside">
-                        <center><a href="https://goo.gl/OJBuHT" target="_blank">
-                                <img src="<?php echo plugins_url( 'images/g-suite-promo-code-4.png', __FILE__ );?>" width="250" height="250" border="0">
-                            </a></center>
-                        <div style="margin:10px 5px">
-                        </div>
-                    </div>
-                    
-                </div>
+                <?php vts_render_pro_upgrade_card(); ?>
             </div>                                                 
             <div class="clear"></div>
         </div>
@@ -917,25 +1037,6 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
             </div>
         <div id="poststuff"  class="wrap">
             <div id="post-body" class="metabox-holder columns-2">
-                <table><tr>
-                        <td>
-                          <div class="fb-like" data-href="https://www.facebook.com/i13websolution" data-layout="button" data-action="like" data-size="large" data-show-faces="false" data-share="false"></div>
-                          <div id="fb-root"></div>
-                            <script>(function(d, s, id) {
-                              var js, fjs = d.getElementsByTagName(s)[0];
-                              if (d.getElementById(id)) return;
-                              js = d.createElement(s); js.id = id;
-                              js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.2&appId=158817690866061&autoLogAppEvents=1';
-                              fjs.parentNode.insertBefore(js, fjs);
-                            }(document, 'script', 'facebook-jssdk'));</script>
-                      </td>
-                        <td>
-                            <a target="_blank" title="Donate" href="http://www.i13websolution.com/donate-wordpress_image_thumbnail.php">
-                                <img id="help us for free plugin" height="30" width="90" src="<?php echo plugins_url( 'images/paypaldonate.jpg', __FILE__ );?>" border="0" alt="help us for free plugin" title="help us for free plugin">
-                            </a>
-                        </td>
-                    </tr>
-                </table>
 
                 <?php 
 
@@ -960,8 +1061,6 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
 
 
                 <div id="post-body-content" >  
-                    <span><h3 style="color: blue;"><a target="_blank" href="https://www.i13websolution.com/product/wordpress-vertical-thumbnail-slider-pro-plugin/"><?php echo __( 'UPGRADE TO PRO VERSION','wp-vertical-image-slider');?></a></h3></span>
-
                     <div class="icon32 icon32-posts-post" id="icon-edit"><br></div>
                     <h1><?php echo __( 'Images','wp-vertical-image-slider');?> <a class="button add-new-h2" href="admin.php?page=vertical_thumbnail_slider_image_management&action=addedit"><?php echo __( 'Add New','wp-vertical-image-slider');?></a> 
                      &nbsp;&nbsp;
@@ -1330,26 +1429,7 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
                     <div class="clear"></div> 
                 </div>    
                 <div id="postbox-container-1" class="postbox-container"> 
-                    <div class="postbox"> 
-                        <h3 class="hndle"><span></span><?php echo __( 'Recommended WordPress Themes','wp-vertical-image-slider');?></h3> 
-                        <div class="inside">
-                            <center><a href="http://www.elegantthemes.com/affiliates/idevaffiliate.php?id=11715_0_1_10" target="_blank"><img border="0" src="<?php echo plugins_url( 'images/300x250.gif', __FILE__ );?>" width="250" height="250"></a></center>
-
-                            <div style="margin:10px 5px">
-
-                            </div>
-                        </div></div>
-                        <div class="postbox"> 
-                        <h3 class="hndle"><span></span><?php echo __('Google For Business Coupon','responsive-filterable-portfolio');?></h3> 
-                            <div class="inside">
-                                <center><a href="https://goo.gl/OJBuHT" target="_blank">
-                                        <img src="<?php echo plugins_url( 'images/g-suite-promo-code-4.png', __FILE__ );?>" width="250" height="250" border="0">
-                                    </a></center>
-                                <div style="margin:10px 5px">
-                                </div>
-                            </div>
-
-                        </div>
+                    <?php vts_render_pro_upgrade_card(); ?>
                 </div>    
 
                 <div style="clear: both;"></div>
@@ -1553,7 +1633,6 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
             <div id="poststuff" >  
             <div id="post-body" class="metabox-holder columns-2"> 
                 <div id="post-body-content">
-                    <span><h3 style="color: blue;"><a target="_blank" href="https://www.i13websolution.com/product/wordpress-vertical-thumbnail-slider-pro-plugin/">UPGRADE TO PRO VERSION</a></h3></span>
                     <div class="wrap">
                         <?php if(isset($_GET['id']) and intval($_GET['id'])>0)
                             { 
@@ -2004,6 +2083,134 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
     <?php       
     }
 
+    /**
+     * Resolves the display src for a slider image, reusing the same on-disk
+     * resize behaviour as the legacy renderer, without touching that code.
+     */
+    function vts_modern_resolve_image_src( $row, $settings, $pathToImagesFolder, $baseurl ) {
+
+        $imageheight = $settings['imageheight'];
+        $imagewidth  = $settings['imagewidth'];
+        $imageUploadTo = str_replace( "\\", "/", $pathToImagesFolder . '/' . $row['image_name'] );
+        $pathinfo = pathinfo( $imageUploadTo );
+        $filenamewithoutextension = $pathinfo['filename'];
+
+        if ( empty( $settings['resizeImages'] ) ) {
+            return $baseurl . $row['image_name'];
+        }
+
+        $imagetoCheck = $pathToImagesFolder . '/' . $filenamewithoutextension . '_' . $imageheight . '_' . $imagewidth . '.' . $pathinfo['extension'];
+        $imagetoCheckSmall = $pathToImagesFolder . '/' . $filenamewithoutextension . '_' . $imageheight . '_' . $imagewidth . '.' . strtolower( $pathinfo['extension'] );
+
+        if ( file_exists( $imagetoCheck ) ) {
+            return $baseurl . $filenamewithoutextension . '_' . $imageheight . '_' . $imagewidth . '.' . $pathinfo['extension'];
+        }
+        if ( file_exists( $imagetoCheckSmall ) ) {
+            return $baseurl . $filenamewithoutextension . '_' . $imageheight . '_' . $imagewidth . '.' . strtolower( $pathinfo['extension'] );
+        }
+        if ( function_exists( 'wp_get_image_editor' ) ) {
+            $image = wp_get_image_editor( $pathToImagesFolder . '/' . $row['image_name'] );
+            if ( ! is_wp_error( $image ) ) {
+                $image->resize( $imagewidth, $imageheight, true );
+                $image->save( $imagetoCheck );
+                if ( file_exists( $imagetoCheck ) ) {
+                    return $baseurl . $filenamewithoutextension . '_' . $imageheight . '_' . $imagewidth . '.' . $pathinfo['extension'];
+                }
+            }
+        }
+
+        return $baseurl . $row['image_name'];
+    }
+
+    /**
+     * Modern engine renderer: single dependency-free code path used for both
+     * "responsive" and "non-responsive" settings (the modern layout is fluid
+     * by default via CSS, so that legacy distinction no longer applies).
+     * The legacy renderer below this function is left completely untouched.
+     */
+    function vts_print_modern_slider( $settings, $pathToImagesFolder, $baseurl ) {
+
+        wp_enqueue_style( 'vts-modern' );
+        wp_enqueue_script( 'vts-modern-engine' );
+
+        $lightbox_on = ! empty( $settings['enable_lightbox'] );
+        if ( $lightbox_on ) {
+            wp_enqueue_script( 'vts-modern-lightbox' );
+        }
+
+        global $wpdb;
+        $query = "SELECT * FROM " . $wpdb->prefix . "vertical_thumbnail_slider order by createdon desc";
+        $rows  = $wpdb->get_results( $query, 'ARRAY_A' );
+
+        if ( empty( $rows ) ) {
+            return '';
+        }
+
+        $auto = (int) $settings['auto'];
+        $show_arrows = ( $auto === 0 || $auto === 2 );
+        $instance_id = 'vts_modern_' . wp_unique_id();
+
+        ob_start();
+        ?>
+        <div style="clear: both;"></div>
+        <div class="vts-modern-wrap"
+             id="<?php echo esc_attr( $instance_id ); ?>"
+             data-vts-lightbox-group="<?php echo esc_attr( $instance_id ); ?>"
+             data-visible="<?php echo esc_attr( $settings['visible'] ); ?>"
+             data-scroll="<?php echo esc_attr( $settings['scroll'] ); ?>"
+             data-speed="<?php echo esc_attr( $settings['speed'] ); ?>"
+             data-pause="<?php echo esc_attr( $settings['pause'] ); ?>"
+             data-circular="<?php echo ! empty( $settings['circular'] ) ? '1' : '0'; ?>"
+             data-auto="<?php echo esc_attr( $auto ); ?>"
+             data-pause-hover="<?php echo ! empty( $settings['pauseonmouseover'] ) ? '1' : '0'; ?>"
+             data-margin="<?php echo esc_attr( $settings['imageMargin'] ); ?>"
+             style="max-width:<?php echo (int) $settings['imagewidth']; ?>px;">
+
+            <?php if ( $show_arrows ) : ?>
+            <span class="vts-modern-nav vts-modern-prev" role="button" tabindex="0" aria-label="<?php esc_attr_e( 'Previous', 'wp-vertical-image-slider' ); ?>">
+                <svg viewBox="0 0 24 24"><path d="M12 6l-8 8h16z"></path></svg>
+            </span>
+            <?php endif; ?>
+
+            <div class="vts-modern-viewport" style="background:<?php echo esc_attr( $settings['scollerBackground'] ); ?>;">
+                <div class="vts-modern-track">
+                    <?php foreach ( $rows as $row ) :
+                        $outputimg  = vts_modern_resolve_image_src( $row, $settings, $pathToImagesFolder, $baseurl );
+                        $full_img   = $baseurl . $row['image_name'];
+                        $rowTitle   = str_replace( array( "'", '"' ), array( '&#8217;', '&#8221;' ), $row['title'] );
+                        $has_link   = ! empty( $row['custom_link'] );
+                        $use_lightbox = $lightbox_on && ! $has_link;
+                        ?>
+                        <div class="vts-modern-item">
+                            <?php if ( $has_link ) : ?>
+                                <a target="_blank" href="<?php echo esc_url( $row['custom_link'] ); ?>">
+                                    <img src="<?php echo esc_url( $outputimg ); ?>" alt="<?php echo esc_attr( $rowTitle ); ?>" title="<?php echo esc_attr( $rowTitle ); ?>" style="height:<?php echo (int) $settings['imageheight']; ?>px;" />
+                                </a>
+                            <?php elseif ( $use_lightbox ) : ?>
+                                <a href="<?php echo esc_url( $full_img ); ?>" class="vts-lightbox-trigger" data-vts-full="<?php echo esc_url( $full_img ); ?>" data-vts-caption="<?php echo esc_attr( $rowTitle ); ?>">
+                                    <img src="<?php echo esc_url( $outputimg ); ?>" alt="<?php echo esc_attr( $rowTitle ); ?>" title="<?php echo esc_attr( $rowTitle ); ?>" style="height:<?php echo (int) $settings['imageheight']; ?>px;" />
+                                </a>
+                            <?php else : ?>
+                                <img src="<?php echo esc_url( $outputimg ); ?>" alt="<?php echo esc_attr( $rowTitle ); ?>" title="<?php echo esc_attr( $rowTitle ); ?>" style="height:<?php echo (int) $settings['imageheight']; ?>px;" />
+                            <?php endif; ?>
+                            <?php if ( ! empty( $settings['show_caption'] ) && trim( $row['title'] ) !== '' ) : ?>
+                                <div class="vts-modern-caption"><?php echo esc_html( $row['title'] ); ?></div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <?php if ( $show_arrows ) : ?>
+            <span class="vts-modern-nav vts-modern-next" role="button" tabindex="0" aria-label="<?php esc_attr_e( 'Next', 'wp-vertical-image-slider' ); ?>">
+                <svg viewBox="0 0 24 24"><path d="M12 18l8-8H4z"></path></svg>
+            </span>
+            <?php endif; ?>
+        </div>
+        <?php
+        return ob_get_clean();
+    }
+
     function print_vertical_thumbnail_slider_func(){
 
         $wpcurrentdir=dirname(__FILE__);
@@ -2018,6 +2225,12 @@ function vts_vertical_thumbnail_slider_remove_access_capabilities(){
         $baseurl=$uploads['baseurl'];
         $baseurl.='/wp-vertical-image-slider/';
         
+        $slider_engine = isset( $settings['slider_engine'] ) ? $settings['slider_engine'] : 'legacy';
+
+        if ( $slider_engine === 'modern' ) {
+            return vts_print_modern_slider( $settings, $pathToImagesFolder, $baseurl );
+        }
+
         wp_enqueue_style('images-vertical-thumbnail-slider-style');
         wp_enqueue_style('vertical-responsive');
         wp_enqueue_script('jquery'); 
